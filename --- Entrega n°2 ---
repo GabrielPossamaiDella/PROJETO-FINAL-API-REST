@@ -1,0 +1,84 @@
+---  Entrega n°2  ---
+
+# Documentação da API - Modelos e Funcionalidades
+
+Este documento detalha os modelos de dados (entidades) e as principais funcionalidades da API de Gestão Financeira Pessoal, em conformidade com os requisitos da Entrega 02 do projeto.
+
+## 1. Modelos de Dados (Entidades)
+
+A API irá operar sobre três entidades centrais que se relacionam para representar os dados do domínio de finanças pessoais.
+
+---
+
+### 1.1. Entidade `User`
+
+Representa o usuário do sistema. Cada usuário é o "dono" de suas próprias categorias e transações, garantindo o isolamento dos dados.
+
+| Atributo  | Tipo de Dado | Descrição                                        | Restrições / Regras                      |
+| :-------- | :----------- | :----------------------------------------------- | :--------------------------------------- |
+| `id`        | `Long`       | Identificador único numérico (Chave Primária).   | Gerado automaticamente.                  |
+| `name`      | `String`     | Nome completo do usuário.                        | Obrigatório.                             |
+| `email`     | `String`     | Endereço de e-mail para login e comunicação.     | Obrigatório, formato de e-mail válido, único. |
+| `password`  | `String`     | Senha de acesso do usuário.                      | Obrigatório, será armazenada com hash.   |
+| `createdAt` | `DateTime`   | Data e hora do registro do usuário.              | Gerado automaticamente na criação.       |
+| `updatedAt` | `DateTime`   | Data e hora da última atualização do registro.   | Atualizado automaticamente.              |
+
+---
+
+### 1.2. Entidade `Category`
+
+Representa as categorias que um usuário pode criar para classificar suas transações (ex: Salário, Moradia, Alimentação, Lazer).
+
+| Atributo    | Tipo de Dado  | Descrição                                        | Restrições / Regras                      |
+| :---------- | :------------ | :----------------------------------------------- | :--------------------------------------- |
+| `id`          | `Long`        | Identificador único numérico (Chave Primária).   | Gerado automaticamente.                  |
+| `name`        | `String`      | Nome da categoria (ex: "Alimentação").           | Obrigatório, único por usuário.          |
+| `description` | `String`      | Descrição opcional para a categoria.             | Opcional.                                |
+| `type`        | `Enum`        | Tipo da categoria: `INCOME` (Receita) ou `EXPENSE` (Despesa). | Obrigatório.                             |
+| `userId`      | `Long`        | Chave Estrangeira que referencia o `User` dono da categoria. | Obrigatório (Relação N:1 com User).      |
+| `accessCount` | `Long`        | Contador de acessos (Req. Carta-Desafio).        | Inicia com `0`. Incrementado a cada `GET /categories/{id}`. |
+
+---
+
+### 1.3. Entidade `Transaction`
+
+Representa uma movimentação financeira, seja uma entrada (receita) ou uma saída (despesa), realizada por um usuário e associada a uma categoria.
+
+| Atributo    | Tipo de Dado | Descrição                                        | Restrições / Regras                      |
+| :---------- | :----------- | :----------------------------------------------- | :--------------------------------------- |
+| `id`          | `Long`       | Identificador único numérico (Chave Primária).   | Gerado automaticamente.                  |
+| `description` | `String`     | Descrição da transação (ex: "Almoço no restaurante X"). | Obrigatório.                             |
+| `amount`      | `Double`     | Valor monetário da transação.                    | Obrigatório, deve ser maior que zero.    |
+| `date`        | `Date`       | Data em que a transação ocorreu.                 | Obrigatório.                             |
+| `type`        | `Enum`       | Tipo da transação: `INCOME` (Receita) ou `EXPENSE` (Despesa). | Obrigatório.                             |
+| `userId`      | `Long`       | Chave Estrangeira que referencia o `User` dono da transação. | Obrigatório (Relação N:1 com User).      |
+| `categoryId`  | `Long`       | Chave Estrangeira que referencia a `Category` da transação. | Obrigatório (Relação N:1 com Category).  |
+
+## 2. Principais Funcionalidades da API
+
+A seguir, são descritas as funcionalidades macro que a API irá prover, agrupadas por contexto.
+
+### 2.1. Autenticação e Gerenciamento de Usuários
+
+* **Cadastro de Usuários:** Permitir que um novo usuário se registre na plataforma fornecendo nome, e-mail e senha.
+* **Autenticação de Usuários:** Permitir que um usuário registrado faça login para obter um token de acesso (JWT), que será usado para autorizar o acesso às demais funcionalidades.
+* **Gerenciamento de Perfil:** Permitir que o usuário autenticado visualize e atualize suas próprias informações de perfil (nome, e-mail, senha).
+
+### 2.2. Gerenciamento de Categorias
+
+* **Criação de Categorias:** O usuário autenticado poderá criar novas categorias de receita ou despesa.
+* **Listagem de Categorias:** O usuário poderá listar todas as suas categorias cadastradas. Esta listagem permitirá a ordenação por popularidade (campo `accessCount`), conforme a Carta-Desafio.
+* **Detalhe de Categoria:** O usuário poderá visualizar os detalhes de uma categoria específica. Cada chamada a esta funcionalidade incrementará o contador de popularidade (`accessCount`) da categoria.
+* **Atualização de Categorias:** O usuário poderá alterar o nome ou a descrição de suas categorias.
+* **Exclusão de Categorias:** O usuário poderá excluir categorias que não são mais necessárias (regras de negócio para categorias em uso deverão ser tratadas).
+
+### 2.3. Gerenciamento de Transações
+
+* **Registro de Transações:** O usuário autenticado poderá registrar novas transações (receitas ou despesas), associando-as a uma de suas categorias.
+* **Listagem e Filtragem de Transações:** Funcionalidade central da API, onde o usuário poderá listar todas as suas transações com suporte a:
+    * **Paginação:** Para lidar com grandes volumes de dados.
+    * **Ordenação:** Por data, valor, etc.
+    * **Filtros:** Por período (data de início e fim), por tipo (receita/despesa) e por categoria.
+* **Detalhe de Transação:** O usuário poderá visualizar os detalhes completos de uma transação específica.
+* **Atualização de Transações:** O usuário poderá corrigir informações de uma transação já registrada.
+* **Exclusão de Transações:** O usuário poderá remover uma transação lançada incorretamente.
