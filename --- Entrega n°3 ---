@@ -1,0 +1,94 @@
+# Entrega 03: Arquitetura REST e Mapeamento de Funcionalidades
+
+**Projeto:** API de Gestão Financeira Pessoal
+
+**Tema:** Finanças e Investimentos
+
+**Integrantes:** Augusto Benedetti, Gabriel Possamai, Murilo Mandelli
+
+Este documento define a arquitetura REST da API, detalhando as rotas (endpoints), os verbos HTTP associados, os códigos de resposta esperados e como as funcionalidades descritas na Entrega 02 são mapeadas.
+
+## 1. Códigos de Resposta HTTP Padrão
+
+Para manter a consistência, os seguintes códigos de erro serão usados em toda a API:
+
+* `200 OK`: Requisição bem-sucedida (ex: `GET`, `PUT`).
+* `201 Created`: Recurso criado com sucesso (ex: `POST`).
+* `204 No Content`: Requisição bem-sucedida, sem conteúdo para retornar (ex: `DELETE`).
+* `400 Bad Request`: A requisição do cliente é inválida ou mal formada (ex: falha na validação de DTOs, falta de campos obrigatórios).
+* `401 Unauthorized`: O cliente não está autenticado. A requisição exige um token JWT válido.
+* `403 Forbidden`: O cliente está autenticado, mas não tem permissão para acessar o recurso solicitado (ex: tentar acessar dados de outro usuário).
+* `404 Not Found`: O recurso solicitado não foi encontrado (ex: `GET /transactions/999` onde o ID 999 não existe).
+* `409 Conflict`: A requisição não pôde ser concluída devido a um conflito com o estado atual do recurso (ex: tentar criar um usuário com um e-mail que já existe).
+* `500 Internal Server Error`: Um erro inesperado ocorreu no servidor.
+
+---
+
+## 2. Mapeamento de Rotas (Endpoints)
+
+As rotas são agrupadas por entidade/módulo de funcionalidade. Todas as rotas, exceto `/auth/register` e `/auth/login`, são protegidas e exigem autenticação via token JWT.
+
+### Módulo: Autenticação e Usuários (`/auth`, `/users`)
+
+Rotas responsáveis pelo cadastro, login e gerenciamento do perfil do usuário.
+
+| Funcionalidade | Verbo | Rota (Endpoint) | Códigos de Sucesso | Códigos de Erro |
+| :--- | :--- | :--- | :--- | :--- |
+| Registrar novo usuário | `POST` | `/auth/register` | `201 Created` | `400 Bad Request`, `409 Conflict` (e-mail já existe) |
+| Autenticar usuário (Login) | `POST` | `/auth/login` | `200 OK` (retorna o token JWT) | `400 Bad Request`, `401 Unauthorized` (credenciais inválidas) |
+| Buscar perfil do usuário | `GET` | `/users/me` | `200 OK` | `401 Unauthorized` |
+| Atualizar perfil do usuário | `PUT` | `/users/me` | `200 OK` | `400 Bad Request`, `401 Unauthorized`, `409 Conflict` |
+| Deletar conta do usuário | `DELETE` | `/users/me` | `204 No Content` | `401 Unauthorized` |
+
+---
+
+### Módulo: Categorias (`/categories`)
+
+Rotas para o gerenciamento das categorias de transações. **Este módulo implementa a Carta-Desafio "Ranking de Popularidade".**
+
+| Funcionalidade | Verbo | Rota (Endpoint) | Códigos de Sucesso | Códigos de Erro |
+| :--- | :--- | :--- | :--- | :--- |
+| Criar nova categoria | `POST` | `/categories` | `201 Created` | `400 Bad Request`, `401 Unauthorized` |
+| Listar todas as categorias | `GET` | `/categories` | `200 OK` | `401 Unauthorized` |
+| Buscar categoria por ID | `GET` | `/categories/{id}` | `200 OK` | `401 Unauthorized`, `403 Forbidden`, `404 Not Found` |
+| Atualizar uma categoria | `PUT` | `/categories/{id}` | `200 OK` | `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found` |
+| Deletar uma categoria | `DELETE` | `/categories/{id}` | `204 No Content` | `401 Unauthorized`, `403 Forbidden`, `404 Not Found` |
+
+#### Detalhamento de Requisitos (Categorias)
+
+O endpoint de listagem `GET /categories` atende aos seguintes requisitos:
+
+* **Paginação:** `?page=0&size=10`
+* **Ordenação:** `?sort=name,asc` (ordena por nome)
+* **Filtros:** `?name=Lazer&type=EXPENSE` (filtra por nome e/ou tipo)
+* **Carta-Desafio (Ranking de Popularidade):** A ordenação pode ser feita pelo campo de popularidade: `?sort=accessCount,desc`
+
+O endpoint de busca `GET /categories/{id}` atende à Carta-Desafio:
+
+* **Carta-Desafio (Ranking de Popularidade):** Cada vez que este endpoint é chamado com sucesso, o atributo `accessCount` da categoria correspondente é **incrementado em 1**.
+
+---
+
+### Módulo: Transações (`/transactions`)
+
+Rotas para o gerenciamento das transações financeiras (receitas e despesas) do usuário.
+
+| Funcionalidade | Verbo | Rota (Endpoint) | Códigos de Sucesso | Códigos de Erro |
+| :--- | :--- | :--- | :--- | :--- |
+| Registrar nova transação | `POST` | `/transactions` | `201 Created` | `400 Bad Request`, `401 Unauthorized` |
+| Listar todas as transações | `GET` | `/transactions` | `200 OK` | `400 Bad Request` (filtro inválido), `401 Unauthorized` |
+| Buscar transação por ID | `GET` | `/transactions/{id}` | `200 OK` | `401 Unauthorized`, `403 Forbidden`, `404 Not Found` |
+| Atualizar uma transação | `PUT` | `/transactions/{id}` | `200 OK` | `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found` |
+| Deletar uma transação | `DELETE` | `/transactions/{id}` | `204 No Content` | `401 Unauthorized`, `403 Forbidden`, `404 Not Found` |
+
+#### Detalhamento de Requisitos (Transações)
+
+O endpoint de listagem `GET /transactions` atende aos seguintes requisitos obrigatórios:
+
+* **Paginação:** `?page=0&size=20` (permite ao usuário definir o número da página e o tamanho).
+* **Ordenação:** `?sort=date,desc` (permite ordenar por qualquer campo, ex: data, valor).
+* **Filtros de Busca:**
+    * Por período: `?startDate=2025-10-01&endDate=2025-10-31`
+    * Por tipo: `?type=INCOME` ou `?type=EXPENSE`
+    * Por categoria: `?categoryId=1`
+    * Por descrição: `?description=Almoço`
