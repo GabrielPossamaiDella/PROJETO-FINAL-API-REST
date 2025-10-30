@@ -19,7 +19,7 @@ Para manter a consistência, os seguintes códigos de erro serão usados em toda
 * `401 Unauthorized`: O cliente não está autenticado. A requisição exige um token JWT válido.
 * `403 Forbidden`: O cliente está autenticado, mas não tem permissão para acessar o recurso solicitado (ex: tentar acessar dados de outro usuário).
 * `404 Not Found`: O recurso solicitado não foi encontrado (ex: `GET /transactions/999` onde o ID 999 não existe).
-* `409 Conflict`: A requisição não pôde ser concluída devido a um conflito com o estado atual do recurso (ex: tentar criar um usuário com um e-mail que já existe).
+* `409 Conflict`: A requisição não pôde ser concluída devido a um conflito com o estado atual do recurso (ex: tentar criar um usuário com um e-mail que já existe, ou deletar um recurso em uso).
 * `500 Internal Server Error`: Um erro inesperado ocorreu no servidor.
 
 ---
@@ -52,7 +52,7 @@ Rotas para o gerenciamento das categorias de transações. **Este módulo implem
 | Listar todas as categorias | `GET` | `/categories` | `200 OK` | `401 Unauthorized` |
 | Buscar categoria por ID | `GET` | `/categories/{id}` | `200 OK` | `401 Unauthorized`, `403 Forbidden`, `404 Not Found` |
 | Atualizar uma categoria | `PUT` | `/categories/{id}` | `200 OK` | `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found` |
-| Deletar uma categoria | `DELETE` | `/categories/{id}` | `204 No Content` | `401 Unauthorized`, `403 Forbidden`, `404 Not Found` |
+| Deletar uma categoria | `DELETE` | `/categories/{id}` | `204 No Content` | `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, **`409 Conflict`** |
 
 #### Detalhamento de Requisitos (Categorias)
 
@@ -66,6 +66,10 @@ O endpoint de listagem `GET /categories` atende aos seguintes requisitos:
 O endpoint de busca `GET /categories/{id}` atende à Carta-Desafio:
 
 * **Carta-Desafio (Ranking de Popularidade):** Cada vez que este endpoint é chamado com sucesso, o atributo `accessCount` da categoria correspondente é **incrementado em 1**.
+
+O endpoint de exclusão `DELETE /categories/{id}` possui uma regra de negócio específica:
+
+* **Regra de Integridade:** Um usuário não pode excluir uma categoria que já esteja associada a uma ou mais transações. Caso isso seja tentado, a API deve retornar um erro `409 Conflict` para preservar a integridade dos dados.
 
 ---
 
