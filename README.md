@@ -3,19 +3,34 @@
 Este repositório contém o código-fonte e a documentação do projeto final da disciplina de BACK-END.
 O objetivo deste projeto é projetar e desenvolver uma API RESTful completa, estruturada e funcional para um sistema de gerenciamento financeiro pessoal, aplicando as boas práticas de desenvolvimento backend.
 
-##  Tema do Projeto
+## 🎯 Tema do Projeto
 
-O tema escolhido para o desenvolvimento da API foi o de **Finanças e Investimentos**.
+O tema escolhido para o desenvolvimento da API foi o de **Finanças e Investimentos**. A solução proposta é uma API que permite a um usuário controlar suas receitas e despesas, categorizá-las e obter insights sobre sua vida financeira.
 
-##  Integrantes da Equipe
+## 👥 Integrantes da Equipe
 
 * Augusto Benedetti
 * Gabriel Possamai
 * Murilo Mandelli
 
+## 💻 Tecnologias Utilizadas
+
+Este projeto será desenvolvido utilizando a seguinte stack de tecnologias:
+
+* **Linguagem:** Java 17+
+* **Framework:** Spring Boot 3+
+    * **Spring Data JPA:** Para persistência de dados e abstração de queries.
+    * **Spring Web:** Para a construção dos endpoints RESTful.
+    * **Spring Security:** Para implementação de autenticação e autorização via JWT.
+    * **Spring Boot Validation:** Para validação dos DTOs de entrada.
+* **Banco de Dados:** PostgreSQL (ou MySQL/H2)
+* **Gerenciamento de Dependências:** Maven (ou Gradle)
+* **Documentação da API:** Swagger (Springdoc OpenAPI) - (Requisito Extra)
+* **Utilitários:** Lombok
+
 ---
 
-## Documentação da API - Modelos e Funcionalidades
+## 📖 Documentação da API - Modelos e Funcionalidades
 
 Este documento detalha os modelos de dados (entidades) e as principais funcionalidades da API de Gestão Financeira Pessoal.
 
@@ -68,13 +83,11 @@ Representa uma movimentação financeira, seja uma entrada (receita) ou uma saí
 A seguir, são descritas as funcionalidades macro que a API irá prover, agrupadas por contexto.
 
 #### 2.1. Autenticação e Gerenciamento de Usuários
-
 * **Cadastro de Usuários:** Permitir que um novo usuário se registre na plataforma fornecendo nome, e-mail e senha.
 * **Autenticação de Usuários:** Permitir que um usuário registrado faça login para obter um token de acesso (JWT), que será usado para autorizar o acesso às demais funcionalidades.
 * **Gerenciamento de Perfil:** Permitir que o usuário autenticado visualize e atualize suas próprias informações de perfil (nome, e-mail, senha).
 
 #### 2.2. Gerenciamento de Categorias
-
 * **Criação de Categorias:** O usuário autenticado poderá criar novas categorias de receita ou despesa.
 * **Listagem de Categorias:** O usuário poderá listar todas as suas categorias cadastradas. Esta listagem permitirá a ordenação por popularidade (campo `accessCount`), conforme a Carta-Desafio.
 * **Detalhe de Categoria:** O usuário poderá visualizar os detalhes de uma categoria específica. Cada chamada a esta funcionalidade incrementará o contador de popularidade (`accessCount`) da categoria.
@@ -82,7 +95,6 @@ A seguir, são descritas as funcionalidades macro que a API irá prover, agrupad
 * **Exclusão de Categorias:** O usuário poderá excluir categorias que não são mais necessárias (regras de negócio para categorias em uso deverão ser tratadas).
 
 #### 2.3. Gerenciamento de Transações
-
 * **Registro de Transações:** O usuário autenticado poderá registrar novas transações (receitas ou despesas), associando-as a uma de suas categorias.
 * **Listagem e Filtragem de Transações:** Funcionalidade central da API, onde o usuário poderá listar todas as suas transações com suporte a:
     * **Paginação:** Para lidar com grandes volumes de dados.
@@ -94,7 +106,7 @@ A seguir, são descritas as funcionalidades macro que a API irá prover, agrupad
 
 ---
 
-## Arquitetura REST e Mapeamento de Funcionalidades
+## 🗺️ Arquitetura REST e Mapeamento de Funcionalidades
 
 Este documento define a arquitetura REST da API, detalhando as rotas (endpoints), os verbos HTTP associados e os códigos de resposta esperados.
 
@@ -118,8 +130,6 @@ As rotas são agrupadas por entidade/módulo de funcionalidade. Todas as rotas, 
 
 #### Módulo: Autenticação e Usuários (`/auth`, `/users`)
 
-Rotas responsáveis pelo cadastro, login e gerenciamento do perfil do usuário.
-
 | Funcionalidade | Verbo | Rota (Endpoint) | Códigos de Sucesso | Códigos de Erro |
 | :--- | :--- | :--- | :--- | :--- |
 | Registrar novo usuário | `POST` | `/auth/register` | `201 Created` | `400 Bad Request`, `409 Conflict` (e-mail já existe) |
@@ -129,8 +139,6 @@ Rotas responsáveis pelo cadastro, login e gerenciamento do perfil do usuário.
 | Deletar conta do usuário | `DELETE` | `/users/me` | `204 No Content` | `401 Unauthorized` |
 
 #### Módulo: Categorias (`/categories`)
-
-Rotas para o gerenciamento das categorias de transações. **Este módulo implementa a Carta-Desafio "Ranking de Popularidade".**
 
 | Funcionalidade | Verbo | Rota (Endpoint) | Códigos de Sucesso | Códigos de Erro |
 | :--- | :--- | :--- | :--- | :--- |
@@ -142,24 +150,14 @@ Rotas para o gerenciamento das categorias de transações. **Este módulo implem
 
 **Detalhamento de Requisitos (Categorias)**
 
-O endpoint de listagem `GET /categories` atende aos seguintes requisitos:
-
 * **Paginação:** `?page=0&size=10`
-* **Ordenação:** `?sort=name,asc` (ordena por nome)
-* **Filtros:** `?name=Lazer&type=EXPENSE` (filtra por nome e/ou tipo)
-* **Carta-Desafio (Ranking de Popularidade):** A ordenação pode ser feita pelo campo de popularidade: `?sort=accessCount,desc`
-
-O endpoint de busca `GET /categories/{id}` atende à Carta-Desafio:
-
-* **Carta-Desafio (Ranking de Popularidade):** Cada vez que este endpoint é chamado com sucesso, o atributo `accessCount` da categoria correspondente é **incrementado em 1**.
-
-O endpoint de exclusão `DELETE /categories/{id}` possui uma regra de negócio específica:
-
-* **Regra de Integridade:** Um usuário não pode excluir uma categoria que já esteja associada a uma ou mais transações. Caso isso seja tentado, a API deve retornar um erro `409 Conflict` para preservar a integridade dos dados.
+* **Ordenação:** `?sort=name,asc`
+* **Filtros:** `?name=Lazer&type=EXPENSE`
+* **Carta-Desafio (Ranking de Popularidade):** `?sort=accessCount,desc`
+* **Carta-Desafio (Incremento):** `GET /categories/{id}` incrementa `accessCount` em +1.
+* **Regra de Integridade:** `DELETE /categories/{id}` retorna `409 Conflict` se a categoria estiver em uso por transações.
 
 #### Módulo: Transações (`/transactions`)
-
-Rotas para o gerenciamento das transações financeiras (receitas e despesas) do usuário.
 
 | Funcionalidade | Verbo | Rota (Endpoint) | Códigos de Sucesso | Códigos de Erro |
 | :--- | :--- | :--- | :--- | :--- |
@@ -171,12 +169,36 @@ Rotas para o gerenciamento das transações financeiras (receitas e despesas) do
 
 **Detalhamento de Requisitos (Transações)**
 
-O endpoint de listagem `GET /transactions` atende aos seguintes requisitos obrigatórios:
-
-* **Paginação:** `?page=0&size=20` (permite ao usuário definir o número da página e o tamanho).
-* **Ordenação:** `?sort=date,desc` (permite ordenar por qualquer campo, ex: data, valor).
+* **Paginação:** `?page=0&size=20`
+* **Ordenação:** `?sort=date,desc`
 * **Filtros de Busca:**
-    * Por período: `?startDate=2025-10-01&endDate=2025-10-31`
-    * Por tipo: `?type=INCOME` ou `?type=EXPENSE`
-    * Por categoria: `?categoryId=1`
-    * Por descrição: `?description=Almoço`
+    * Período: `?startDate=2025-10-01&endDate=2025-10-31`
+    * Tipo: `?type=INCOME` ou `?type=EXPENSE`
+    * Categoria: `?categoryId=1`
+    * Descrição: `?description=Almoço`
+
+---
+
+## 👾 Plano de Implementação da Carta-Desafio (Entrega 04)
+
+**Carta-Desafio:** Ranking de Popularidade
+> "Uma entidade deve possuir uma propriedade de número de acessos. Para cada GET, a entidade deve ser incrementada em 1. O GET ALL dessa entidade deve permitir um filtro para ordenar pela popularidade dos acessos;"
+
+**Entidade Escolhida:** `Category`
+
+O plano de implementação foi dividido em três partes:
+
+### 1. Alteração no Modelo (Entidade)
+O campo `accessCount` será adicionado à entidade `Category`, com um valor padrão `0`.
+
+**Arquivo-alvo:** `.../model/Category.java`
+```java
+@Entity
+public class Category {
+    
+
+    @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    private Long accessCount = 0L;
+    
+    
+}

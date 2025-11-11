@@ -1,0 +1,38 @@
+# Documentação do Plano de Implementação da Carta-Desafio
+
+Este documento descreve o plano de implementação e as alterações que serão realizadas no projeto para atender aos requisitos da Carta-Desafio sorteada para a equipe.
+
+## 1. Carta-Desafio: Ranking de Popularidade
+
+**Descrição da Carta:**
+> "Ranking de Popularidade - Uma entidade deve possuir uma propriedade de número de acessos. Para cada GET, a entidade deve ser incrementada em 1. O GET ALL dessa entidade deve permitir um filtro para ordenar pela popularidade dos acessos;"
+
+## 2. Plano de Implementação
+
+Para atender a este requisito no contexto do tema "Finanças e Investimentos", escolhemos a entidade **`Category` (Categoria)** para receber esta funcionalidade.
+
+Isso agregará valor ao produto, permitindo ao usuário identificar quais categorias ele mais acessa ou consulta, indicando maior interesse ou necessidade de gerenciamento.
+
+A implementação será dividida em três partes principais:
+
+### 2.1. Alteração no Modelo (Entidade)
+
+A entidade `Category` será modificada para incluir um novo campo para armazenar a contagem de acessos.
+
+**Arquivo-alvo:** `src/main/java/com/seuprojeto/financas/model/Category.java`
+
+**Plano:**
+Adicionar o campo `accessCount` à entidade. No banco de dados, este campo será configurado com um valor padrão (`DEFAULT 0`) e não poderá ser nulo (`nullable = false`).
+
+```java
+@Entity
+@Table(name = "categories")
+@Getter
+@Setter
+public class Category {
+
+    @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    private Long accessCount = 0L;
+    
+    
+}
