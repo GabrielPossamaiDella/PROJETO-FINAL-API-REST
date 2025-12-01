@@ -1,11 +1,10 @@
 package com.financas.financas.config;
 
 import com.financas.financas.security.JwtAuthenticationFilter;
-import com.financas.financas.service.UserDetailServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod; 
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -27,61 +26,48 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Autowired
-    private UserDetailServiceImpl userDetailService;
-
-    // Define as regras de filtro da aplicação
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            // 1. Aplica a nossa configuração de CORS
+        return http
+            // 1. HABILITA O CORS (ISSO QUE FALTOU PARA O SWAGGER)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
             .authorizeHttpRequests(authorize -> authorize
-                // 1. Permite o "pre-flight request" (a "pergunta") do navegador
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
-                
-                // 2. Permite os acessos públicos
-                .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
-                .requestMatchers("/v3/api-docs/**").permitAll()
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/swagger-ui.html").permitAll()
-
-                // 3. Exige autenticação para todo o resto
-                .anyRequest().authenticated() 
+                // Libera Swagger e configs
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Libera Login e Registro
+                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
+                // Libera o "pre-flight" do navegador
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Libera H2
+                .requestMatchers("/h2-console/**").permitAll()
+                // Bloqueia o resto
+                .anyRequest().authenticated()
             )
-            
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
-        // Permite o H2/Swagger em frames
-        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
-
-        return http.build();
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))
+            .build();
     }
-    
-    // Bean do CORS (Permitindo tudo para teste)
+
+    // 2. CONFIGURAÇÃO DO CORS (Permite tudo)
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Permite qualquer origem
-        configuration.setAllowedMethods(Arrays.asList("GET","POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOrigins(Arrays.asList("*")); // Libera qualquer origem
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 
-    // Bean que ensina o Spring a como criptografar senhas
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // Bean que gerencia a autenticação
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();

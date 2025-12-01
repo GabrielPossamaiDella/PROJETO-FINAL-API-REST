@@ -12,6 +12,8 @@ import com.financas.financas.repository.TransactionRepository;
 import com.financas.financas.specification.TransactionSpecification;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -20,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List; // Importe java.util.List
 
 @Service
 public class TransactionService {
@@ -57,12 +58,10 @@ public class TransactionService {
         return new TransactionResponseDTO(savedTransaction);
     }
 
-    /**
-     
-     */
+    // --- PAGINAÇÃO VOLTOU AQUI ---
     @Transactional(readOnly = true)
-    public List<TransactionResponseDTO> getAllTransactions( 
-            
+    public Page<TransactionResponseDTO> getAllTransactions(
+            Pageable pageable, // Recebe pageable
             LocalDate startDate, 
             LocalDate endDate, 
             TransactionType type, 
@@ -70,23 +69,19 @@ public class TransactionService {
     ) {
         User user = getAuthenticatedUser();
         
-        // 1. Cria os filtros normais (data, tipo, categoria)
         Specification<Transaction> spec = transactionSpecification.getTransactionsByFilters(
                 startDate, endDate, type, categoryId
         );
         
-        // 2. Adiciona o filtro de USUÁRIO (Segurança)
         Specification<Transaction> userSpec = (root, query, cb) -> cb.equal(root.get("user").get("id"), user.getId());
         Specification<Transaction> finalSpec = spec.and(userSpec);
         
-        // 3. Busca a LISTA 
-        List<Transaction> transactionList = transactionRepository.findAll(finalSpec);
+        // Retorna PAGE
+        Page<Transaction> transactionPage = transactionRepository.findAll(finalSpec, pageable);
         
-        // 4. Converte para DTOs
-        return transactionList.stream()
-                .map(TransactionResponseDTO::new)
-                .toList();
+        return transactionPage.map(TransactionResponseDTO::new);
     }
+    // -----------------------------
     
     @Transactional
     public TransactionResponseDTO updateTransaction(Long id, TransactionUpdateDTO dto) {

@@ -8,12 +8,13 @@ import com.financas.financas.model.User;
 import com.financas.financas.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.List; // Importante para o teste de Lista
 
 @Service
 public class CategoryService {
@@ -21,9 +22,6 @@ public class CategoryService {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    /**
-     * LÓGICA DE CRIAÇÃO (CREATE)
-     */
     @Transactional
     public CategoryResponseDTO createCategory(CategoryCreateDTO dto) {
         User user = getAuthenticatedUser();
@@ -39,30 +37,21 @@ public class CategoryService {
         return new CategoryResponseDTO(savedCategory);
     }
     
-    /**
-     * LÓGICA DE LEITURA (GET ALL)
-     */
+    // --- PAGINAÇÃO VOLTOU AQUI ---
     @Transactional(readOnly = true)
-    public List<CategoryResponseDTO> getAllCategories() {
+    public Page<CategoryResponseDTO> getAllCategories(Pageable pageable) {
         
-        // 1. Pega o usuário logado
         User user = getAuthenticatedUser();
         
-        // 2. Busca TODAS as categorias deste usuário (usando o método que retorna List)
-        List<Category> categoryList = categoryRepository.findByUser(user);
+        // Busca PAGINADA e filtrada por usuário
+        Page<Category> categoryPage = categoryRepository.findByUser(user, pageable);
         
-        // 3. Converte a Lista de Entidades para Lista de DTOs
-        return categoryList.stream()
-                           .map(CategoryResponseDTO::new)
-                           .toList();
+        return categoryPage.map(CategoryResponseDTO::new);
     }
+    // -----------------------------
     
-    /**
-     * LÓGICA DE LEITURA (GET ONE)
-     */
     @Transactional
     public CategoryResponseDTO getOneCategory(Long id) {
-        
         User user = getAuthenticatedUser();
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Categoria não encontrada. ID: " + id));
@@ -76,12 +65,8 @@ public class CategoryService {
         return new CategoryResponseDTO(category);
     }
 
-    /**
-     * LÓGICA DE ATUALIZAÇÃO (UPDATE)
-     */
     @Transactional
     public CategoryResponseDTO updateCategory(Long id, CategoryUpdateDTO dto) {
-        
         User user = getAuthenticatedUser();
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Categoria não encontrada. ID: " + id));
@@ -90,25 +75,15 @@ public class CategoryService {
             throw new AccessDeniedException("Acesso negado: Esta categoria não pertence a você.");
         }
 
-        if (dto.getName() != null) {
-            category.setName(dto.getName());
-        }
-        if (dto.getDescription() != null) {
-            category.setDescription(dto.getDescription());
-        }
-        if (dto.getType() != null) {
-            category.setType(dto.getType());
-        }
+        if (dto.getName() != null) category.setName(dto.getName());
+        if (dto.getDescription() != null) category.setDescription(dto.getDescription());
+        if (dto.getType() != null) category.setType(dto.getType());
         
         return new CategoryResponseDTO(category);
     }
 
-    /**
-     * LÓGICA DE DELEÇÃO (DELETE)
-     */
     @Transactional
     public void deleteCategory(Long id) {
-        
         User user = getAuthenticatedUser();
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Categoria não encontrada. ID: " + id));
@@ -125,9 +100,6 @@ public class CategoryService {
         categoryRepository.delete(category);
     }
 
-    /**
-     * Método auxiliar para pegar o usuário logado
-     */
     private User getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof User)) {

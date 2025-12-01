@@ -7,12 +7,13 @@ import com.financas.financas.model.enums.TransactionType;
 import com.financas.financas.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.time.LocalDate;
-import java.util.List; 
 
 @RestController
 @RequestMapping("/transactions")
@@ -28,26 +29,26 @@ public class TransactionController {
         return ResponseEntity.created(uri).body(newTransaction);
     }
 
+    // --- PAGINAÇÃO VOLTOU AQUI ---
     @GetMapping
-    public ResponseEntity<List<TransactionResponseDTO>> listAll(
+    public ResponseEntity<Page<TransactionResponseDTO>> listAll(
+            Pageable pageable, // Recebe Pageable
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) TransactionType type,
             @RequestParam(required = false) Long categoryId
     ) {
         
-        List<TransactionResponseDTO> transactionList = transactionService.getAllTransactions(
-                startDate, endDate, type, categoryId
+        Page<TransactionResponseDTO> transactionPage = transactionService.getAllTransactions(
+                pageable, startDate, endDate, type, categoryId
         );
         
-        return ResponseEntity.ok(transactionList);
+        return ResponseEntity.ok(transactionPage);
     }
+    // -----------------------------
 
     @PutMapping("/{id}")
-    public ResponseEntity<TransactionResponseDTO> update(
-            @PathVariable Long id, 
-            @Valid @RequestBody TransactionUpdateDTO dto
-    ) {
+    public ResponseEntity<TransactionResponseDTO> update(@PathVariable Long id, @Valid @RequestBody TransactionUpdateDTO dto) {
         TransactionResponseDTO updatedTransaction = transactionService.updateTransaction(id, dto);
         return ResponseEntity.ok(updatedTransaction);
     }

@@ -7,13 +7,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List; // IMPORTE ESTE
-
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
+    // Método que busca por usuário E suporta paginação
     Page<Category> findByUser(User user, Pageable pageable);
-
-    List<Category> findByUser(User user);
 
 }
